@@ -17,7 +17,9 @@ module.exports = {
       assert: false,
       util: false,
     },
-    alias: {},
+    alias: {
+      "@src": path.resolve(__dirname, "./src"),
+    },
   },
   module: {
     rules: [

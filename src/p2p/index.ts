@@ -1,6 +1,6 @@
 import { io, Socket } from "socket.io-client";
 import { DATA_CHANNEL_NAME, MessageType } from "./types";
-import { EventType } from "../shared/types";
+import { EventType } from "@src/shared/types";
 import PubSub from "pubsub-js";
 
 export class P2P {

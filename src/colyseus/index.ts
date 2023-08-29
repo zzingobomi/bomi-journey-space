@@ -1,5 +1,5 @@
 import PubSub from "pubsub-js";
-import { EventType } from "../shared/types";
+import { EventType } from "@src/shared/types";
 import { Protocol } from "./Protocol";
 import { State } from "./PlayerSchema";
 import { SchemaSerializer } from "./SchemaSerializer";

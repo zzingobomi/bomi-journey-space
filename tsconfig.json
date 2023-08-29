@@ -12,10 +12,12 @@
     "types": ["node"],
     "typeRoots": ["node_modules/@types"],
     "baseUrl": ".",
-    "paths": {}
+    "paths": {
+      "@src/*": ["src/*"]
+    }
   },
   "include": [
-    "src/p2p/*",
+    "src/*",
     "src/**/*.d.ts",
     "src/colyseus/**/*.ts",
     "src/colyseus/**/*.js"

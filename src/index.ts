@@ -1,5 +1,5 @@
-import { P2P } from "./p2p";
-import { Room } from "../src/colyseus";
+import { P2P } from "@src/p2p";
+import { Room } from "@src/colyseus";
 
 export class App {
   room: Room;
