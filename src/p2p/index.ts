@@ -1,140 +1,151 @@
 import { io, Socket } from "socket.io-client";
-import { DATA_CHANNEL_NAME, MessageType } from "./types";
-import { EventType } from "@src/shared/types";
-import PubSub from "pubsub-js";
+import {
+  IAnswerPayload,
+  ICandidatePayload,
+  IOfferPayload,
+  IRtcSockets,
+  SocketMsgType,
+  p2pType,
+} from "./types";
+import { RtcSocket } from "./RtcSocket";
 
 export class P2P {
   socket: Socket;
-  peerConnection: RTCPeerConnection;
-  sendChannel: RTCDataChannel;
-  receiveChannel: RTCDataChannel;
+  rtcSockets: IRtcSockets = {};
 
-  public Init() {
-    this.socket = io("ws://localhost:25000", {
+  OnSocketConnected?: (socketId: string) => void;
+  OnAddRtcSocket?: (id: string) => void;
+  OnRemoveRtcSocket?: (id: string) => void;
+
+  constructor(scheme: string, host: string, port: string) {
+    this.socket = io(`${scheme}://${host}:${port}`, {
       reconnectionDelayMax: 10000,
     });
 
-    this.socket.on(MessageType.Hello, (data) => {
-      console.log("user socket connected", this.socket.id);
-    });
-
-    this.socket.emit(MessageType.JoinRoom, {
-      roomId: "userroom1",
-      type: "user",
-    });
-
-    this.socket.on(MessageType.GameServer, async (gameServer) => {
-      this.peerConnection = this.createPeerConnection(gameServer);
-      const offerSdp = await this.peerConnection.createOffer();
-      await this.peerConnection.setLocalDescription(offerSdp);
-
-      const offerPayload = {
-        sdp: offerSdp,
-        offerSendId: this.socket.id,
-        offerReceiveId: gameServer,
-      };
-
-      this.socket.emit(MessageType.Offer, offerPayload);
-    });
-
-    this.socket.on(MessageType.Answer, (data) => {
-      const { sdp, answerSendId } = data;
-      this.peerConnection.setRemoteDescription(sdp);
+    this.socket.on(SocketMsgType.Hello, (data) => {
+      if (this.OnSocketConnected) this.OnSocketConnected(this.socket.id);
     });
   }
 
-  private createPeerConnection(gameServerSocketId: string) {
-    const peerConnection = new RTCPeerConnection({
-      iceServers: [
-        {
-          urls: [
-            "stun:stun.l.google.com:19302",
-            "stun:stun1.l.google.com:19302",
-            "stun:stun2.l.google.com:19302",
-            "stun:stun3.l.google.com:19302",
-            "stun:stun4.l.google.com:19302",
-          ],
-        },
-      ],
+  public Join(roomId: string, type: p2pType) {
+    this.socket.emit(SocketMsgType.JoinRoom, {
+      roomId,
+      type,
     });
 
-    peerConnection.onicecandidate = (ev) => {
-      if (ev.candidate) {
-        const candidatePayload = {
-          candidate: ev.candidate,
-          candidateSendId: this.socket.id,
-          candidateReceiveId: gameServerSocketId,
+    this.socket.on(SocketMsgType.OtherUsers, async (otherUsers: string[]) => {
+      for (const otherUser of otherUsers) {
+        const rtcSocket = new RtcSocket(otherUser);
+        rtcSocket.Create();
+        this.rtcSockets[otherUser] = rtcSocket;
+
+        rtcSocket.OnIceCandidate = (payload: ICandidatePayload) => {
+          payload.candidateSendId = this.socket.id;
+          this.socket.emit(SocketMsgType.Candidate, payload);
         };
 
-        this.socket.emit(MessageType.Candidate, candidatePayload);
+        const offerSdp = await rtcSocket.CreateOffer();
+        await rtcSocket.SetLocalDescription(offerSdp);
+
+        const offerPayload: IOfferPayload = {
+          sdp: offerSdp,
+          offerSendId: this.socket.id,
+          offerReceiveId: otherUser,
+        };
+
+        this.socket.emit(SocketMsgType.Offer, offerPayload);
+
+        if (this.OnAddRtcSocket) this.OnAddRtcSocket(otherUser);
       }
-    };
+    });
 
-    // ========================
-    // DataChannel
-    // ========================
-    this.sendChannel = peerConnection.createDataChannel(DATA_CHANNEL_NAME);
-    this.sendChannel.onopen = (ev) => {
-      this.handleSendChannelStatusChange(this.sendChannel, ev);
-    };
-    this.sendChannel.onclose = (ev) => {
-      this.handleSendChannelStatusChange(this.sendChannel, ev);
-    };
+    this.socket.on(SocketMsgType.GameServer, async (gameServerId: string) => {
+      const rtcSocket = new RtcSocket(gameServerId);
+      rtcSocket.Create();
+      this.rtcSockets[gameServerId] = rtcSocket;
 
-    peerConnection.ondatachannel = (ev) => {
-      const receiveChannel = ev.channel;
-      receiveChannel.onopen = (ev) => {
-        this.handleReceiveChannelStatusChange(receiveChannel, ev);
+      rtcSocket.OnIceCandidate = (payload: ICandidatePayload) => {
+        payload.candidateSendId = this.socket.id;
+        this.socket.emit(SocketMsgType.Candidate, payload);
       };
-      receiveChannel.onclose = (ev) => {
-        this.handleReceiveChannelStatusChange(receiveChannel, ev);
+
+      const offerSdp = await rtcSocket.CreateOffer();
+      await rtcSocket.SetLocalDescription(offerSdp);
+
+      const offerPayload: IOfferPayload = {
+        sdp: offerSdp,
+        offerSendId: this.socket.id,
+        offerReceiveId: gameServerId,
       };
-      receiveChannel.onmessage = (ev) => {
-        this.handleReceiveMessage(receiveChannel, ev);
+
+      this.socket.emit(SocketMsgType.Offer, offerPayload);
+
+      if (this.OnAddRtcSocket) this.OnAddRtcSocket(gameServerId);
+    });
+
+    this.socket.on(SocketMsgType.Offer, async (data: IOfferPayload) => {
+      const { sdp, offerSendId } = data;
+      const rtcSocket = new RtcSocket(offerSendId);
+      rtcSocket.Create();
+      this.rtcSockets[offerSendId] = rtcSocket;
+
+      rtcSocket.OnIceCandidate = (payload: ICandidatePayload) => {
+        payload.candidateSendId = this.socket.id;
+        this.socket.emit(SocketMsgType.Candidate, payload);
       };
-    };
 
-    // ========================
-    // StateChange
-    // ========================
+      await rtcSocket.SetRemoteDescription(sdp);
+      const answerSdp = await rtcSocket.CreateAnswer();
+      rtcSocket.SetLocalDescription(answerSdp);
 
-    peerConnection.onconnectionstatechange = (ev) => {
-      console.log(
-        "Peer Connection State has changed:",
-        peerConnection.connectionState
-      );
-    };
+      const answerPayload: IAnswerPayload = {
+        sdp: answerSdp,
+        answerSendId: this.socket.id,
+        answerReceiveId: offerSendId,
+      };
 
-    peerConnection.oniceconnectionstatechange = (ev) => {
-      //console.log("Ice Connection State has changed:", ev);
-    };
+      this.socket.emit(SocketMsgType.Answer, answerPayload);
 
-    return peerConnection;
-  }
+      if (this.OnAddRtcSocket) this.OnAddRtcSocket(offerSendId);
+    });
 
-  // ========================
-  // Handle DataChannel
-  // ========================
+    this.socket.on(SocketMsgType.Answer, (data: IAnswerPayload) => {
+      const { sdp, answerSendId } = data;
+      const rtcSocket = this.rtcSockets[answerSendId];
+      rtcSocket.SetRemoteDescription(sdp);
+    });
 
-  private handleSendChannelStatusChange(dataChannel, event) {
-    if (dataChannel) {
-      if (dataChannel.readyState === "open") {
-        console.log("Data channel is open.");
-      } else if (dataChannel.readyState === "closed") {
-        console.log("Data channel is closed.");
+    this.socket.on(SocketMsgType.Candidate, async (data: ICandidatePayload) => {
+      const { candidate, candidateSendId } = data;
+      const rtcSocket = this.rtcSockets[candidateSendId];
+      await rtcSocket.AddIceCandidate(candidate);
+    });
+
+    this.socket.on(SocketMsgType.OtherExit, (exitSocketId: string) => {
+      const rtcSocket = this.rtcSockets[exitSocketId];
+      if (rtcSocket) {
+        rtcSocket.CloseSendChannel();
+        rtcSocket.CloseReceiveChannel();
+        this.rtcSockets[exitSocketId] = null;
+        delete this.rtcSockets[exitSocketId];
+
+        if (this.OnRemoveRtcSocket) this.OnRemoveRtcSocket(exitSocketId);
       }
-    }
+    });
+
+    this.socket.on(SocketMsgType.Disconnect, (data) => {
+      console.log(data);
+    });
   }
 
-  private handleReceiveChannelStatusChange(dataChannel, event) {
-    if (dataChannel) {
-      console.log(
-        "Receive channel's status has changed to " + dataChannel.readyState
-      );
-    }
+  ///
+  /// 호출되는 시점의 현재 rtcSocket 들을 리턴해준다.
+  ///
+  public GetAllRtcSockets() {
+    return Object.values(this.rtcSockets);
   }
 
-  private handleReceiveMessage(dataChannel, event) {
-    PubSub.publish(EventType.ReceiveData, event.data);
+  public GetRtcSocket(id: string) {
+    return this.rtcSockets[id];
   }
 }

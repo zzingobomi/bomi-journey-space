@@ -1,8 +1,8 @@
-import PubSub from "pubsub-js";
-import { EventType } from "@src/shared/types";
+import { RtcSocketEventType } from "@src/p2p/types";
 import { Protocol } from "./Protocol";
 import { State } from "./PlayerSchema";
 import { SchemaSerializer } from "./SchemaSerializer";
+import PubSub from "pubsub-js";
 
 export class Room {
   token: string;
@@ -11,7 +11,7 @@ export class Room {
   public serializer: SchemaSerializer<State> = new SchemaSerializer();
 
   constructor() {
-    this.token = PubSub.subscribe(EventType.ReceiveData, (msg, data) =>
+    this.token = PubSub.subscribe(RtcSocketEventType.ReceiveData, (msg, data) =>
       this.onMessageCallback(data)
     );
   }
@@ -45,8 +45,9 @@ export class Room {
         break;
       case Protocol.ROOM_STATE_PATCH:
         console.log("ROOM_STATE_PATCH");
-        bytes.shift(); // drop `code` byte
-        this.patch(bytes);
+        // TODO: room state 를 받고나서..
+        //bytes.shift(); // drop `code` byte
+        //this.patch(bytes);
         break;
       case Protocol.ROOM_DATA:
         console.log("ROOM_DATA");

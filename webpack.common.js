@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const appDirectory = fs.realpathSync(process.cwd());
 const CopyPlugin = require("copy-webpack-plugin");
+const Dotenv = require("dotenv-webpack");
 
 module.exports = {
   entry: path.resolve(appDirectory, "src/index.ts"),
@@ -36,6 +37,7 @@ module.exports = {
     ],
   },
   plugins: [
+    new Dotenv(),
     new CopyPlugin({
       patterns: [{ from: "public/", to: "./" }],
     }),
