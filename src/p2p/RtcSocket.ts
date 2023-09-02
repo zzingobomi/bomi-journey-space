@@ -110,4 +110,12 @@ export class RtcSocket {
   public Send(data: any) {
     if (this.sendChannel) this.sendChannel.send(data);
   }
+
+  // public SendText(data: string) {
+  //   if (this.sendChannel) this.sendChannel.send(data);
+  // }
+
+  // public SendBuffer(data: any) {
+  //   if (this.sendChannel) this.sendChannel.send(new Uint8Array(data));
+  // }
 }

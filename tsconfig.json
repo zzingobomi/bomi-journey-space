@@ -17,7 +17,7 @@
     }
   },
   "include": [
-    "src/*",
+    "src/**/*.ts",
     "src/**/*.d.ts",
     "src/colyseus/**/*.ts",
     "src/colyseus/**/*.js"

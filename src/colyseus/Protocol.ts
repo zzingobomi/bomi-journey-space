@@ -10,3 +10,9 @@ export enum Protocol {
   ROOM_DATA_SCHEMA = 16,
   ROOM_DATA_BYTES = 17,
 }
+
+export const getMessageBytes = {
+  [Protocol.JOIN_ROOM]: () => {
+    return new Uint8Array([Protocol.JOIN_ROOM]);
+  },
+};

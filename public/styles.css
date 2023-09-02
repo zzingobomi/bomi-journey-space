@@ -47,3 +47,13 @@ body {
   transform: translateY(-50%);
   width: 100%;
 }
+
+.player {
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  padding-top: 24px;
+  box-sizing: border-box;
+  left: 0;
+  top: 0;
+}
