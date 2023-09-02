@@ -1,4 +1,4 @@
-import { Player } from "@src/colyseus/PlayerSchema";
+import { Player } from "@src/network/PlayerSchema";
 
 const colors = ["red", "green", "yellow", "blue", "cyan", "magenta"];
 

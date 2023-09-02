@@ -11,13 +11,13 @@ body {
   font-size: 16px;
 }
 
-#renderCanvas {
+#game-canvas {
   width: 100%;
   height: 100%;
   touch-action: none;
 }
 
-#loadingScreen {
+#loading {
   width: 100%;
   height: 100%;
   color: white;
@@ -48,7 +48,7 @@ body {
   width: 100%;
 }
 
-.player {
+/* .player {
   width: 100px;
   height: 100px;
   position: absolute;
@@ -56,4 +56,4 @@ body {
   box-sizing: border-box;
   left: 0;
   top: 0;
-}
+} */
