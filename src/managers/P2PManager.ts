@@ -6,7 +6,7 @@ export class P2PManager {
   p2p: P2P;
 
   public Init() {
-    Managers.loading.ShowLoadingDesc("P2P Connection ...");
+    Managers.Loading.ShowLoadingDesc("P2P Connection ...");
 
     this.p2p = new P2P(
       process.env.WS_SCHEME,
@@ -17,7 +17,7 @@ export class P2PManager {
     this.p2p.Join("userroom1", "user");
     this.p2p.OnSocketConnected = (socketId: string) => {
       console.log(`${socketId} is connected`);
-      Managers.network.Init(socketId);
+      Managers.Network.Init(socketId);
     };
     this.p2p.OnAddRtcSocket = (id: string) => {
       const rtcSocket = this.p2p.GetRtcSocket(id);
@@ -35,11 +35,15 @@ export class P2PManager {
             break;
         }
       };
-      // TODO: SendchannelOpen 때 하는게 맞는가?
       rtcSocket.OnSendChannelOpen = (ev: Event) => {
         console.log(`${rtcSocket.id} send channel open`);
+        Managers.Network.SetServerRtcSocket(rtcSocket);
+      };
+      rtcSocket.OnReceiveChannelOpen = (ev: Event) => {
+        console.log(`${rtcSocket.id} receive channel open`);
       };
       rtcSocket.OnReceiveChannelMessage = (ev: MessageEvent<any>) => {
+        // TODO: pubusb 안쓰고 수정할것...
         PubSub.publish(RtcSocketEventType.ReceiveData, {
           rtcSocket,
           data: ev.data,

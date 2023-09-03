@@ -1,31 +1,42 @@
-import { GameRoomState } from "@src/network/GameRoomState";
 import { Room } from "@src/network/Room";
 import { Managers } from "./Managers";
-import { Player } from "@src/network/PlayerSchema";
+
+import { RtcSocket } from "@src/p2p/RtcSocket";
+import { GameRoomStateSchema } from "@src/schema/GameRoomStateSchema";
+import { PlayerSchema } from "@src/schema/PlayerSchema";
 
 export class NetworkManager {
-  room: Room<GameRoomState>;
+  room: Room<GameRoomStateSchema>;
+  serverRtcSocket: RtcSocket;
 
   public Init(sessionId: string) {
-    this.room = new Room<GameRoomState>(sessionId);
+    this.room = new Room<GameRoomStateSchema>(sessionId);
     this.room.OnJoin = this.join.bind(this);
 
-    Managers.loading.HideLoadingUI();
+    Managers.Loading.HideLoadingUI();
+  }
+
+  public SetServerRtcSocket(rtcSocket: RtcSocket) {
+    this.serverRtcSocket = rtcSocket;
+  }
+
+  public Send(data: any) {
+    this.serverRtcSocket.Send(data);
   }
 
   private join() {
     this.room.state.players.onAdd(
-      (playerUpdator: Player, sessionId: string) => {
+      (updator: PlayerSchema, sessionId: string) => {
         if (this.room.sessionId === sessionId) {
-          Managers.Players.CreateMyPlayer(playerUpdator, sessionId);
+          Managers.Players.CreateMyPlayer(updator, sessionId);
         } else {
-          Managers.Players.CreateRemotePlayer(playerUpdator, sessionId);
+          Managers.Players.CreateRemotePlayer(updator, sessionId);
         }
       }
     );
 
     this.room.state.players.onRemove(
-      (playerUpdator: Player, sessionId: string) => {
+      (updator: PlayerSchema, sessionId: string) => {
         Managers.Players.RemovePlayer(sessionId);
       }
     );

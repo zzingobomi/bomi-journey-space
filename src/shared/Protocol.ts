@@ -1,5 +1,5 @@
 export enum Protocol {
-  // Room-related (10~19)
+  // Room (10~19)
   HANDSHAKE = 9,
   JOIN_ROOM = 10,
   ERROR = 11,
@@ -9,10 +9,10 @@ export enum Protocol {
   ROOM_STATE_PATCH = 15,
   ROOM_DATA_SCHEMA = 16,
   ROOM_DATA_BYTES = 17,
-}
 
-export const getMessageBytes = {
-  [Protocol.JOIN_ROOM]: () => {
-    return new Uint8Array([Protocol.JOIN_ROOM]);
-  },
-};
+  // Client to Server
+  ENTITY_POSITION = 20,
+  ENTITY_QUATERNION = 21,
+  ENTITY_SCALE = 22,
+  ENTITY_STATE = 23,
+}

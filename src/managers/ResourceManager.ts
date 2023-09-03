@@ -17,6 +17,10 @@ export class ResourceManager {
     return this.loadedAssets;
   }
 
+  public GetAsset(name: string) {
+    return this.loadedAssets[name] as AssetContainer;
+  }
+
   public async LoadAssets(scene: Scene) {
     this.assetsManager = new AssetsManager(scene);
 
@@ -98,11 +102,11 @@ export class ResourceManager {
         ((totalCount - remainingCount) / totalCount) *
         100
       ).toFixed(0)}%`;
-      Managers.loading.ShowLoadingDesc(loadingMsg);
+      Managers.Loading.ShowLoadingDesc(loadingMsg);
     };
 
     this.assetsManager.onFinish = () => {
-      Managers.loading.ShowLoadingDesc("Resource Load 100%");
+      Managers.Loading.ShowLoadingDesc("Resource Load 100%");
     };
 
     await this.assetsManager.loadAsync();

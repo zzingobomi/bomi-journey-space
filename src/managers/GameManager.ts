@@ -12,9 +12,9 @@ import {
   Vector3,
 } from "@babylonjs/core";
 import { Room } from "@src/network/Room";
-import { GameRoomState } from "@src/network/GameRoomState";
 import { Managers } from "@src/managers/Managers";
-import { PlayerCamera } from "../core/PlayerCamera";
+import { PlayerCamera } from "../core/engine/PlayerCamera";
+import { GameRoomStateSchema } from "@src/schema/GameRoomStateSchema";
 import Stats from "stats.js";
 
 export class GameManager {
@@ -25,7 +25,7 @@ export class GameManager {
   public playerCamera: PlayerCamera;
 
   // network
-  public room: Room<GameRoomState>;
+  public room: Room<GameRoomStateSchema>;
 
   // Debug
   public stats: Stats;
@@ -97,7 +97,9 @@ export class GameManager {
     document.body.appendChild(this.stats.dom);
   }
 
-  private update(delta: number) {}
+  private update(delta: number) {
+    Managers.Instance.Update(delta);
+  }
 
   private render() {
     this.engine.runRenderLoop(() => {

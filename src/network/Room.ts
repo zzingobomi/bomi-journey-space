@@ -1,11 +1,10 @@
 import { RtcSocketEventType } from "@src/p2p/P2PYypes";
-import { Protocol, getMessageBytes } from "./Protocol";
-//import { State } from "./PlayerSchema";
 import { SchemaSerializer } from "./SchemaSerializer";
-import PubSub from "pubsub-js";
 import { RtcSocket } from "@src/p2p/RtcSocket";
 import { Schema } from "@colyseus/schema";
-import { Player } from "./PlayerSchema";
+import { Protocol } from "@src/shared/Protocol";
+import { getMessageBytes } from "@src/Utils";
+import PubSub from "pubsub-js";
 
 export class Room<State extends Schema> {
   public sessionId: string;
@@ -18,6 +17,7 @@ export class Room<State extends Schema> {
 
   constructor(sessionId: string) {
     this.sessionId = sessionId;
+    // TODO: Pubsub 이 아니고.. manager 이용?
     this.token = PubSub.subscribe(
       RtcSocketEventType.ReceiveData,
       (msg, dataObj) => this._onMessageProtocol(dataObj)
