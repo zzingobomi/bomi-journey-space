@@ -6,7 +6,7 @@ import {
   IRtcSockets,
   SocketMsgType,
   p2pType,
-} from "./P2PYypes";
+} from "./P2PTypes";
 import { RtcSocket } from "./RtcSocket";
 
 export class P2P {

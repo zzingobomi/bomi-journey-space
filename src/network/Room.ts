@@ -1,4 +1,4 @@
-import { RtcSocketEventType } from "@src/p2p/P2PYypes";
+import { RtcSocketEventType } from "@src/p2p/P2PTypes";
 import { SchemaSerializer } from "./SchemaSerializer";
 import { RtcSocket } from "@src/p2p/RtcSocket";
 import { Schema } from "@colyseus/schema";

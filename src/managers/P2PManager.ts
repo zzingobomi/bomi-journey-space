@@ -1,5 +1,5 @@
 import { P2P } from "@src/p2p/P2P";
-import { RtcSocketEventType } from "@src/p2p/P2PYypes";
+import { RtcSocketEventType } from "@src/p2p/P2PTypes";
 import { Managers } from "./Managers";
 
 export class P2PManager {

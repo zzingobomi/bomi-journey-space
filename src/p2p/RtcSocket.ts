@@ -1,4 +1,4 @@
-import { DATA_CHANNEL_NAME, ICandidatePayload, StunUrls } from "./P2PYypes";
+import { DATA_CHANNEL_NAME, ICandidatePayload, StunUrls } from "./P2PTypes";
 
 export class RtcSocket {
   id: string;

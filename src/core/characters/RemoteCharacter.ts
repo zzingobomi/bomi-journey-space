@@ -1,6 +1,14 @@
 import { Entity } from "../engine/Entity";
 import { PlayerSchema } from "@src/schema/PlayerSchema";
 import { moveTowardsVector3 } from "../../Utils";
+import {
+  AbstractMesh,
+  Matrix,
+  MeshBuilder,
+  Quaternion,
+  Vector3,
+} from "@babylonjs/core";
+import { Managers } from "@src/managers/Managers";
 
 export class RemoteCharacter extends Entity<PlayerSchema> {
   constructor(assetName: string, updator: PlayerSchema) {
@@ -28,6 +36,37 @@ export class RemoteCharacter extends Entity<PlayerSchema> {
         updator.transform.scale.z
       );
     });
+  }
+
+  InitMesh() {
+    const outer = MeshBuilder.CreateBox(
+      "remoteCharacter",
+      { width: 2, depth: 1, height: 3 },
+      Managers.Game.scene
+    );
+    outer.isVisible = false;
+    outer.isPickable = false;
+    outer.checkCollisions = true;
+
+    outer.bakeTransformIntoVertices(Matrix.Translation(0, 1.5, 0));
+
+    outer.ellipsoid = new Vector3(1, 1.5, 1);
+    outer.ellipsoidOffset = new Vector3(0, 1.5, 0);
+
+    outer.rotationQuaternion = new Quaternion(0, 1, 0, 0);
+
+    this.outer = outer;
+
+    const mesh = this.rootNodes[0] as AbstractMesh;
+    mesh.parent = this.outer;
+    mesh.isPickable = false;
+    mesh.getChildMeshes().forEach((m) => {
+      m.isPickable = false;
+    });
+
+    this.mesh = mesh;
+
+    this.SetInitialPosition();
   }
 
   Update(delta: number) {

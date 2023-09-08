@@ -26,18 +26,32 @@ export class ResourceManager {
 
     const environmentModelFile = "town.glb";
     const characterModelFile = "male.glb";
+    const villageModelFile = "village.glb";
+    const playerModelFile = "player.glb";
 
     const assetsToLoad = [
       {
         name: environmentModelFile.split(".")[0],
-        filename: `models/${environmentModelFile}`,
+        filename: `${environmentModelFile}`,
         extension: environmentModelFile.split(".")[1],
-        instantiate: false,
+        instantiate: true,
       },
       {
         name: characterModelFile.split(".")[0],
-        filename: `models/${characterModelFile}`,
+        filename: `${characterModelFile}`,
         extension: characterModelFile.split(".")[1],
+        instantiate: true,
+      },
+      {
+        name: villageModelFile.split(".")[0],
+        filename: `${villageModelFile}`,
+        extension: villageModelFile.split(".")[1],
+        instantiate: true,
+      },
+      {
+        name: playerModelFile.split(".")[0],
+        filename: `${playerModelFile}`,
+        extension: playerModelFile.split(".")[1],
         instantiate: true,
       },
     ];
@@ -53,15 +67,15 @@ export class ResourceManager {
             assetTask = this.assetsManager.addContainerTask(
               obj.name,
               "",
-              "",
-              `./${obj.filename}`
+              "http://zzingo5.synology.me:9000/bomi-journey/",
+              `${obj.filename}`
             );
           } else {
             assetTask = this.assetsManager.addMeshTask(
               obj.name,
               "",
-              "",
-              `./${obj.filename}`
+              "http://zzingo5.synology.me:9000/bomi-journey/",
+              `${obj.filename}`
             );
           }
           break;

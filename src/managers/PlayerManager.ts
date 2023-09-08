@@ -22,7 +22,7 @@ export class PlayerManager {
   public async CreateMyPlayer(updator: PlayerSchema, sessionId: string) {
     console.log("myPlayer", sessionId);
 
-    const myCharacter = new MyCharacter("male", updator);
+    const myCharacter = new MyCharacter("player", updator);
 
     const info: PlayerInfo = {
       sessionId,
@@ -36,7 +36,7 @@ export class PlayerManager {
   public async CreateRemotePlayer(updator: PlayerSchema, sessionId: string) {
     console.log("remotePlayer", sessionId);
 
-    const remoteCharacter = new RemoteCharacter("male", updator);
+    const remoteCharacter = new RemoteCharacter("player", updator);
 
     const info: PlayerInfo = {
       sessionId,

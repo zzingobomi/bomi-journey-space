@@ -90,6 +90,8 @@ export class GameManager {
 
   private async initResource() {
     await Managers.Resource.LoadAssets(this.scene);
+    const townInstance =
+      Managers.Resource.GetAsset("town").instantiateModelsToScene();
   }
 
   private async initDebug() {

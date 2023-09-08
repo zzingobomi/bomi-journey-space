@@ -1,9 +1,23 @@
-import { AbstractMesh, Vector3, Quaternion } from "@babylonjs/core";
+import {
+  Vector3,
+  Quaternion,
+  TransformNode,
+  Node,
+  Skeleton,
+  Mesh,
+  AnimationGroup,
+  AbstractMesh,
+} from "@babylonjs/core";
 import { Managers } from "@src/managers/Managers";
 import { EntitySchema } from "@src/schema/EntitySchema";
 
-export abstract class Entity<T extends EntitySchema> {
+export abstract class Entity<T extends EntitySchema> extends TransformNode {
+  outer: Mesh;
   mesh: AbstractMesh;
+  rootNodes: Node[];
+  skeletons: Skeleton[];
+  animationGroups: AnimationGroup[];
+
   updator: T;
 
   moveSpeed = 0.01;
@@ -18,25 +32,34 @@ export abstract class Entity<T extends EntitySchema> {
   patchInterval = 0;
 
   constructor(assetName: string, updator: T) {
-    this.mesh = Managers.Resource.GetAsset(assetName).instantiateModelsToScene()
-      .rootNodes[0] as AbstractMesh;
+    super(assetName, Managers.Game.scene);
     this.updator = updator;
 
-    this.mesh.position.set(
-      updator.transform.position.x,
-      updator.transform.position.y,
-      updator.transform.position.z
+    const { rootNodes, skeletons, animationGroups } =
+      Managers.Resource.GetAsset(assetName).instantiateModelsToScene();
+    this.rootNodes = rootNodes;
+    this.skeletons = skeletons;
+    this.animationGroups = animationGroups;
+  }
+
+  abstract InitMesh();
+
+  protected SetInitialPosition() {
+    this.outer.position.set(
+      this.updator.transform.position.x,
+      this.updator.transform.position.y,
+      this.updator.transform.position.z
     );
-    this.mesh.rotationQuaternion.set(
-      updator.transform.quaternion.x,
-      updator.transform.quaternion.y,
-      updator.transform.quaternion.z,
-      updator.transform.quaternion.w
+    this.outer.rotationQuaternion.set(
+      this.updator.transform.quaternion.x,
+      this.updator.transform.quaternion.y,
+      this.updator.transform.quaternion.z,
+      this.updator.transform.quaternion.w
     );
-    this.mesh.scaling.set(
-      updator.transform.scale.x,
-      updator.transform.scale.y,
-      updator.transform.scale.z
+    this.outer.scaling.set(
+      this.updator.transform.scale.x,
+      this.updator.transform.scale.y,
+      this.updator.transform.scale.z
     );
   }
 
