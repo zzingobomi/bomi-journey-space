@@ -2,7 +2,7 @@ import { Managers } from "@src/managers/Managers";
 import { Entity } from "../engine/Entity";
 import { PlayerSchema } from "@src/schema/PlayerSchema";
 import { Protocol } from "@src/shared/Protocol";
-import { KeyboardCode, getMessageBytes, moveTowardsVector3 } from "@src/Utils";
+import { getMessageBytes } from "@src/Utils";
 import {
   AbstractMesh,
   Matrix,
@@ -10,15 +10,9 @@ import {
   Quaternion,
   Vector3,
   Scalar,
-  DeviceSourceManager,
-  DeviceSource,
-  DeviceType,
-  IPointerEvent,
-  PickingInfo,
-  PointerEventTypes,
   Ray,
-  Tools,
 } from "@babylonjs/core";
+import { InputController } from "../engine/InputController";
 
 enum CharacterState {
   DASH = 0,
@@ -32,21 +26,8 @@ export class MyCharacter extends Entity<PlayerSchema> {
   private static readonly PLAYER_SPEED: number = 0.45;
   private static readonly GRAVITY: number = -2.8;
   private static readonly JUMP_FORCE: number = 0.8;
-  private static readonly MOUSE_SENSITIVITY: number = 0.003;
-  private static readonly CAMERA_SPEED: number = 0.05;
-  private static readonly MOUSE_Y_MIN: number = -35;
-  private static readonly MOUSE_Y_MAX: number = 45;
 
-  dsm: DeviceSourceManager;
-
-  horizontal: number = 0;
-  vertical: number = 0;
-
-  horizontalAxis: number = 0;
-  verticalAxis: number = 0;
-
-  jumpKeyDown: boolean = false;
-  runKeyDown: boolean = false;
+  inputController: InputController;
 
   moveDirection: Vector3 = new Vector3();
   inputAmt: number;
@@ -58,18 +39,14 @@ export class MyCharacter extends Entity<PlayerSchema> {
 
   currentState: CharacterState = CharacterState.IDLE;
 
-  mouseX: number = 0;
-  mouseY: number = 0;
-
   constructor(assetName: string, updator: PlayerSchema) {
     super(assetName, updator);
 
-    this.dsm = new DeviceSourceManager(this.engine);
+    this.inputController = new InputController();
 
     this.SetPatchRate(1000 / 20);
 
     this.scene.registerBeforeRender(this.update.bind(this));
-    this.scene.onPointerMove = this.mouseMove.bind(this);
   }
 
   InitMesh() {
@@ -113,58 +90,16 @@ export class MyCharacter extends Entity<PlayerSchema> {
 
   private update() {
     const deltaTime = this.engine.getDeltaTime() / 1000.0;
-    const keyboard = this.dsm.getDeviceSource(DeviceType.Keyboard);
-    const mouse = this.dsm.getDeviceSource(DeviceType.Mouse);
-
     this.currentState = CharacterState.IDLE;
 
-    if (keyboard) {
-      this.updateFromKeyboard(keyboard);
-    }
-    if (mouse) {
-    }
+    this.inputController.UpdateInput();
 
     this.updateFromControls(deltaTime);
     this.updateGroundDetection(deltaTime);
-    this.updateCamera();
+
+    this.inputController.UpdateCamera(this.rootMesh.position);
 
     this.switchAnimation(this.currentState);
-  }
-
-  private updateFromKeyboard(keyboard: DeviceSource<DeviceType.Keyboard>) {
-    if (keyboard.getInput(KeyboardCode.KEY_W)) {
-      this.vertical = Scalar.Lerp(this.vertical, 1, 0.2);
-      this.verticalAxis = 1;
-    } else if (keyboard.getInput(KeyboardCode.KEY_S)) {
-      this.vertical = Scalar.Lerp(this.vertical, -1, 0.2);
-      this.verticalAxis = -1;
-    } else {
-      this.vertical = 0;
-      this.verticalAxis = 0;
-    }
-
-    if (keyboard.getInput(KeyboardCode.KEY_A)) {
-      this.horizontal = Scalar.Lerp(this.horizontal, -1, 0.2);
-      this.horizontalAxis = -1;
-    } else if (keyboard.getInput(KeyboardCode.KEY_D)) {
-      this.horizontal = Scalar.Lerp(this.horizontal, 1, 0.2);
-      this.horizontalAxis = 1;
-    } else {
-      this.horizontal = 0;
-      this.horizontalAxis = 0;
-    }
-
-    if (keyboard.getInput(KeyboardCode.KEY_SHIFT)) {
-      this.runKeyDown = true;
-    } else {
-      this.runKeyDown = false;
-    }
-
-    if (keyboard.getInput(KeyboardCode.KEY_SPACE)) {
-      this.jumpKeyDown = true;
-    } else {
-      this.jumpKeyDown = false;
-    }
   }
 
   private updateFromControls(deltaTime: number) {
@@ -172,14 +107,18 @@ export class MyCharacter extends Entity<PlayerSchema> {
 
     let fwd = Managers.Game.playerCamera.camRoot.forward;
     let right = Managers.Game.playerCamera.camRoot.right;
-    let correctedVertical = fwd.scaleInPlace(this.vertical);
-    let correctedHorizontal = right.scaleInPlace(this.horizontal);
+    let correctedVertical = fwd.scaleInPlace(this.inputController.vertical);
+    let correctedHorizontal = right.scaleInPlace(
+      this.inputController.horizontal
+    );
 
     let move = correctedHorizontal.addInPlace(correctedVertical);
 
     this.moveDirection = new Vector3(move.normalize().x, 0, move.normalize().z);
 
-    let inputMag = Math.abs(this.horizontal) + Math.abs(this.vertical);
+    let inputMag =
+      Math.abs(this.inputController.horizontal) +
+      Math.abs(this.inputController.vertical);
     if (inputMag < 0) {
       this.inputAmt = 0;
     } else if (inputMag > 1) {
@@ -192,7 +131,11 @@ export class MyCharacter extends Entity<PlayerSchema> {
       this.inputAmt * MyCharacter.PLAYER_SPEED
     );
 
-    let input = new Vector3(this.horizontalAxis, 0, this.verticalAxis);
+    let input = new Vector3(
+      this.inputController.horizontalAxis,
+      0,
+      this.inputController.verticalAxis
+    );
     if (input.length() === 0) {
       this.currentState = CharacterState.IDLE;
       return;
@@ -200,7 +143,10 @@ export class MyCharacter extends Entity<PlayerSchema> {
 
     this.currentState = CharacterState.RUN;
 
-    let angle = Math.atan2(this.horizontalAxis, this.verticalAxis);
+    let angle = Math.atan2(
+      this.inputController.horizontalAxis,
+      this.inputController.verticalAxis
+    );
     angle += Managers.Game.playerCamera.camRoot.rotation.y;
     let targ = Quaternion.FromEulerAngles(0, angle, 0);
     this.rootMesh.rotationQuaternion = Quaternion.Slerp(
@@ -241,51 +187,9 @@ export class MyCharacter extends Entity<PlayerSchema> {
       this.jumpCount = 1;
     }
 
-    if (this.jumpKeyDown && this.jumpCount > 0) {
+    if (this.inputController.jumpKeyDown && this.jumpCount > 0) {
       this.gravity.y = MyCharacter.JUMP_FORCE;
       this.jumpCount--;
-    }
-  }
-
-  private updateCamera() {
-    const deltaTime = this.engine.getDeltaTime();
-    let centerPlayer = this.rootMesh.position.y + 2;
-    Managers.Game.playerCamera.camRoot.position = Vector3.Lerp(
-      Managers.Game.playerCamera.camRoot.position,
-      new Vector3(
-        this.rootMesh.position.x,
-        centerPlayer,
-        this.rootMesh.position.z
-      ),
-      0.4
-    );
-
-    Managers.Game.playerCamera.camRoot.rotation = moveTowardsVector3(
-      Managers.Game.playerCamera.camRoot.rotation,
-      new Vector3(
-        Tools.ToRadians(this.mouseY),
-        Tools.ToRadians(this.mouseX),
-        0
-      ),
-      MyCharacter.CAMERA_SPEED * deltaTime
-    );
-  }
-
-  private mouseMove(
-    evt: IPointerEvent,
-    pickInfo: PickingInfo,
-    type: PointerEventTypes
-  ) {
-    if (document.pointerLockElement === Managers.Game.canvas) {
-      const deltaTime = this.engine.getDeltaTime();
-
-      this.mouseX += evt.movementX * MyCharacter.MOUSE_SENSITIVITY * deltaTime;
-      this.mouseY += evt.movementY * MyCharacter.MOUSE_SENSITIVITY * deltaTime;
-      this.mouseY = Scalar.Clamp(
-        this.mouseY,
-        MyCharacter.MOUSE_Y_MIN,
-        MyCharacter.MOUSE_Y_MAX
-      );
     }
   }
 
