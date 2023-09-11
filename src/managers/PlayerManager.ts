@@ -13,16 +13,17 @@ export class PlayerManager {
   players: PlayerInfo[] = [];
   myPlayer: PlayerInfo;
 
-  public Update(delta: number): void {
-    for (const player of this.players) {
-      player.character.Update(delta);
-    }
-  }
+  // public Update(delta: number): void {
+  //   for (const player of this.players) {
+  //     player.character.Update(delta);
+  //   }
+  // }
 
   public async CreateMyPlayer(updator: PlayerSchema, sessionId: string) {
     console.log("myPlayer", sessionId);
 
     const myCharacter = new MyCharacter("player", updator);
+    myCharacter.InitMesh();
 
     const info: PlayerInfo = {
       sessionId,
@@ -37,6 +38,7 @@ export class PlayerManager {
     console.log("remotePlayer", sessionId);
 
     const remoteCharacter = new RemoteCharacter("player", updator);
+    remoteCharacter.InitMesh();
 
     const info: PlayerInfo = {
       sessionId,

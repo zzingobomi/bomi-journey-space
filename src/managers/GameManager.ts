@@ -10,7 +10,9 @@ import {
   DirectionalLight,
   HemisphericLight,
   Vector3,
+  AbstractMesh,
 } from "@babylonjs/core";
+import { Inspector } from "@babylonjs/inspector";
 import { Room } from "@src/network/Room";
 import { Managers } from "@src/managers/Managers";
 import { PlayerCamera } from "../core/engine/PlayerCamera";
@@ -30,8 +32,6 @@ export class GameManager {
   // Debug
   public stats: Stats;
 
-  private previousTime = Date.now();
-
   constructor() {
     this.canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
   }
@@ -41,6 +41,29 @@ export class GameManager {
     await this.initEnvironment();
     await this.initResource();
     await this.initDebug();
+
+    window.onresize = () => {
+      this.engine.resize();
+    };
+
+    this.canvas.onclick = () => {
+      this.canvas.requestPointerLock =
+        this.canvas.requestPointerLock ||
+        this.canvas.mozRequestPointerLock ||
+        this.canvas.webkitRequestPointerLock;
+
+      this.canvas.requestPointerLock();
+    };
+
+    window.addEventListener("keydown", (ev) => {
+      if (ev.shiftKey && ev.ctrlKey && ev.altKey && ev.key === "I") {
+        if (Inspector.IsVisible) {
+          Inspector.Hide();
+        } else {
+          Inspector.Show(this.scene, {});
+        }
+      }
+    });
 
     this.render();
   }
@@ -92,6 +115,11 @@ export class GameManager {
     await Managers.Resource.LoadAssets(this.scene);
     const townInstance =
       Managers.Resource.GetAsset("town").instantiateModelsToScene();
+    const env = townInstance.rootNodes[0] as AbstractMesh;
+    env.getChildMeshes().forEach((m) => {
+      m.receiveShadows = true;
+      m.checkCollisions = true;
+    });
   }
 
   private async initDebug() {
@@ -99,23 +127,11 @@ export class GameManager {
     document.body.appendChild(this.stats.dom);
   }
 
-  private update(delta: number) {
-    Managers.Instance.Update(delta);
-  }
-
   private render() {
     this.engine.runRenderLoop(() => {
       if (this.scene && this.scene.activeCamera) {
         this.stats.begin();
-
-        const now = Date.now();
-        const delta = now - this.previousTime;
-
-        this.update(delta);
         this.scene.render();
-
-        this.previousTime = now;
-
         this.stats.end();
       }
     });

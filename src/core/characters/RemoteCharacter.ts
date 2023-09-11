@@ -8,7 +8,6 @@ import {
   Quaternion,
   Vector3,
 } from "@babylonjs/core";
-import { Managers } from "@src/managers/Managers";
 
 export class RemoteCharacter extends Entity<PlayerSchema> {
   constructor(assetName: string, updator: PlayerSchema) {
@@ -42,7 +41,7 @@ export class RemoteCharacter extends Entity<PlayerSchema> {
     const outer = MeshBuilder.CreateBox(
       "remoteCharacter",
       { width: 2, depth: 1, height: 3 },
-      Managers.Game.scene
+      this.scene
     );
     outer.isVisible = false;
     outer.isPickable = false;
@@ -55,10 +54,10 @@ export class RemoteCharacter extends Entity<PlayerSchema> {
 
     outer.rotationQuaternion = new Quaternion(0, 1, 0, 0);
 
-    this.outer = outer;
+    this.rootMesh = outer;
 
     const mesh = this.rootNodes[0] as AbstractMesh;
-    mesh.parent = this.outer;
+    mesh.parent = this.rootMesh;
     mesh.isPickable = false;
     mesh.getChildMeshes().forEach((m) => {
       m.isPickable = false;
@@ -69,13 +68,14 @@ export class RemoteCharacter extends Entity<PlayerSchema> {
     this.SetInitialPosition();
   }
 
-  Update(delta: number) {
-    this.mesh.position = moveTowardsVector3(
-      this.mesh.position,
-      this.serverPosition,
-      delta * this.moveSpeed
-    );
-  }
+  // Update(delta: number) {
+  //   this.mesh.position = moveTowardsVector3(
+  //     this.mesh.position,
+  //     this.serverPosition,
+  //     delta * this.moveSpeed
+  //   );
+  // }
+
   Dispose() {
     console.log("remotecharacter dispose");
   }

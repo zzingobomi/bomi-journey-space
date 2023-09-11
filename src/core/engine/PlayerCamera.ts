@@ -6,19 +6,16 @@ import {
 } from "@babylonjs/core";
 
 export class PlayerCamera {
-  public camera: UniversalCamera;
-  private scene: Scene;
-  private camRoot: TransformNode;
-  private yTilt: TransformNode;
-
-  private static readonly PLAYER_SPEED: number = 0.45;
-  private static readonly JUMP_FORCE: number = 0.8;
-  private static readonly GRAVITY: number = -2.8;
   private static readonly ORIGINAL_TILT: Vector3 = new Vector3(
     0.5934119456780721,
     0,
     0
   );
+
+  public camera: UniversalCamera;
+  private scene: Scene;
+  public camRoot: TransformNode;
+  private yTilt: TransformNode;
 
   constructor(scene: Scene) {
     this.scene = scene;
