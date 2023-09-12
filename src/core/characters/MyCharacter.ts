@@ -26,6 +26,7 @@ export class MyCharacter extends Entity<PlayerSchema> {
   private static readonly PLAYER_SPEED: number = 0.45;
   private static readonly GRAVITY: number = -2.8;
   private static readonly JUMP_FORCE: number = 0.8;
+  private static readonly EPSILON: number = Math.pow(10, -12);
 
   inputController: InputController;
 
@@ -38,6 +39,13 @@ export class MyCharacter extends Entity<PlayerSchema> {
   jumpCount: number = 1;
 
   currentState: CharacterState = CharacterState.IDLE;
+
+  deltaTime: number = 0;
+  elaspedTime: number = 0;
+
+  oldPosition: Vector3 = new Vector3();
+  oldQuaternion: Quaternion = new Quaternion();
+  oldScale: Vector3 = new Vector3(1, 1, 1);
 
   constructor(assetName: string, updator: PlayerSchema) {
     super(assetName, updator);
@@ -89,20 +97,22 @@ export class MyCharacter extends Entity<PlayerSchema> {
   }
 
   private update() {
-    const deltaTime = this.engine.getDeltaTime() / 1000.0;
+    this.deltaTime = this.engine.getDeltaTime();
     this.currentState = CharacterState.IDLE;
 
     this.inputController.UpdateInput();
 
-    this.updateFromControls(deltaTime);
-    this.updateGroundDetection(deltaTime);
+    this.updateFromControls();
+    this.updateGroundDetection();
 
     this.inputController.UpdateCamera(this.rootMesh.position);
 
     this.switchAnimation(this.currentState);
+
+    this.patch();
   }
 
-  private updateFromControls(deltaTime: number) {
+  private updateFromControls() {
     this.moveDirection = Vector3.Zero();
 
     let fwd = Managers.Game.playerCamera.camRoot.forward;
@@ -152,11 +162,11 @@ export class MyCharacter extends Entity<PlayerSchema> {
     this.rootMesh.rotationQuaternion = Quaternion.Slerp(
       this.rootMesh.rotationQuaternion,
       targ,
-      10 * deltaTime
+      (10 * this.deltaTime) / 1000.0
     );
   }
 
-  private updateGroundDetection(deltaTime: number) {
+  private updateGroundDetection() {
     if (!this.isGrounded()) {
       if (this.checkSlope() && this.gravity.y <= 0) {
         console.log("slope");
@@ -165,7 +175,7 @@ export class MyCharacter extends Entity<PlayerSchema> {
         this.grounded = true;
       } else {
         this.gravity = this.gravity.addInPlace(
-          Vector3.Up().scale(deltaTime * MyCharacter.GRAVITY)
+          Vector3.Up().scale((this.deltaTime / 1000.0) * MyCharacter.GRAVITY)
         );
         this.grounded = false;
       }
@@ -194,12 +204,11 @@ export class MyCharacter extends Entity<PlayerSchema> {
   }
 
   private switchAnimation(state: CharacterState) {
-    const delta = this.engine.getDeltaTime();
     for (let i = 0; i < this.animationGroups.length; i++) {
       if (state === i) {
-        this.animationGroups[i].weight += 0.005 * delta;
+        this.animationGroups[i].weight += 0.005 * this.deltaTime;
       } else {
-        this.animationGroups[i].weight -= 0.005 * delta;
+        this.animationGroups[i].weight -= 0.005 * this.deltaTime;
       }
       this.animationGroups[i].weight = Scalar.Clamp(
         this.animationGroups[i].weight,
@@ -296,60 +305,48 @@ export class MyCharacter extends Entity<PlayerSchema> {
     return false;
   }
 
-  //Update(delta: number) {
-  // let change = false;
-  // if (this.actions.up.isPressed) {
-  //   this.mesh.position.set(
-  //     this.mesh.position.x,
-  //     this.mesh.position.y,
-  //     this.mesh.position.z + delta * this.moveSpeed
-  //   );
-  //   change = true;
-  // }
-  // if (this.actions.down.isPressed) {
-  //   this.mesh.position.set(
-  //     this.mesh.position.x,
-  //     this.mesh.position.y,
-  //     this.mesh.position.z - delta * this.moveSpeed
-  //   );
-  //   change = true;
-  // }
-  // if (this.actions.left.isPressed) {
-  //   this.mesh.position.set(
-  //     this.mesh.position.x + delta * this.moveSpeed,
-  //     this.mesh.position.y,
-  //     this.mesh.position.z
-  //   );
-  //   change = true;
-  // }
-  // if (this.actions.right.isPressed) {
-  //   this.mesh.position.set(
-  //     this.mesh.position.x - delta * this.moveSpeed,
-  //     this.mesh.position.y,
-  //     this.mesh.position.z
-  //   );
-  //   change = true;
-  // }
-  // this.elaspedTime += delta;
-  // if (this.elaspedTime >= this.patchInterval) {
-  //   // TODO: 변화 없으면 보내지 않기.. 키 입력으로 change 체크? 스스로 움직이는 것도 있는데?
-  //   // 우선은 키입력으로 판단하자
-  //   if (change) {
-  //     Managers.Network.Send(
-  //       getMessageBytes[Protocol.ENTITY_POSITION](this.mesh.position)
-  //     );
-  //     Managers.Network.Send(
-  //       getMessageBytes[Protocol.ENTITY_QUATERNION](
-  //         this.mesh.rotationQuaternion
-  //       )
-  //     );
-  //     Managers.Network.Send(
-  //       getMessageBytes[Protocol.ENTITY_SCALE](this.mesh.scaling)
-  //     );
-  //   }
-  //   this.elaspedTime = 0;
-  // }
-  //}
+  private patch() {
+    this.elaspedTime += this.deltaTime;
+    if (this.elaspedTime >= this.patchInterval) {
+      if (
+        !this.rootMesh.position.equalsWithEpsilon(
+          this.oldPosition,
+          MyCharacter.EPSILON
+        )
+      ) {
+        Managers.Network.Send(
+          getMessageBytes[Protocol.ENTITY_POSITION](this.rootMesh.position)
+        );
+        this.oldPosition.copyFrom(this.rootMesh.position);
+      }
+      if (
+        !this.rootMesh.rotationQuaternion.equalsWithEpsilon(
+          this.oldQuaternion,
+          MyCharacter.EPSILON
+        )
+      ) {
+        Managers.Network.Send(
+          getMessageBytes[Protocol.ENTITY_QUATERNION](
+            this.rootMesh.rotationQuaternion
+          )
+        );
+        this.oldQuaternion.copyFrom(this.rootMesh.rotationQuaternion);
+      }
+      if (
+        !this.rootMesh.scaling.equalsWithEpsilon(
+          this.oldScale,
+          MyCharacter.EPSILON
+        )
+      ) {
+        Managers.Network.Send(
+          getMessageBytes[Protocol.ENTITY_SCALE](this.rootMesh.scaling)
+        );
+        this.oldScale.copyFrom(this.rootMesh.scaling);
+      }
+
+      this.elaspedTime = 0;
+    }
+  }
 
   Dispose() {
     console.log("mycharacter dispose");

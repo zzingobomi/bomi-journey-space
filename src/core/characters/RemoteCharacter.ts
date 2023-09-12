@@ -1,6 +1,6 @@
 import { Entity } from "../engine/Entity";
 import { PlayerSchema } from "@src/schema/PlayerSchema";
-import { moveTowardsVector3 } from "../../Utils";
+import { moveTowardsQuaternion, moveTowardsVector3 } from "../../Utils";
 import {
   AbstractMesh,
   Matrix,
@@ -10,6 +10,8 @@ import {
 } from "@babylonjs/core";
 
 export class RemoteCharacter extends Entity<PlayerSchema> {
+  deltaTime: number = 0;
+
   constructor(assetName: string, updator: PlayerSchema) {
     super(assetName, updator);
 
@@ -35,6 +37,8 @@ export class RemoteCharacter extends Entity<PlayerSchema> {
         updator.transform.scale.z
       );
     });
+
+    this.scene.registerBeforeRender(this.update.bind(this));
   }
 
   InitMesh() {
@@ -68,13 +72,25 @@ export class RemoteCharacter extends Entity<PlayerSchema> {
     this.SetInitialPosition();
   }
 
-  // Update(delta: number) {
-  //   this.mesh.position = moveTowardsVector3(
-  //     this.mesh.position,
-  //     this.serverPosition,
-  //     delta * this.moveSpeed
-  //   );
-  // }
+  private update() {
+    this.deltaTime = this.engine.getDeltaTime();
+
+    this.rootMesh.position = moveTowardsVector3(
+      this.rootMesh.position,
+      this.serverPosition,
+      this.deltaTime * this.moveSpeed
+    );
+    this.rootMesh.rotationQuaternion = moveTowardsQuaternion(
+      this.rootMesh.rotationQuaternion,
+      this.serverQuaternion,
+      this.deltaTime * this.rotateSpeed
+    );
+    this.rootMesh.scaling = moveTowardsVector3(
+      this.rootMesh.scaling,
+      this.serverScale,
+      this.deltaTime * this.scaleSpeed
+    );
+  }
 
   Dispose() {
     console.log("remotecharacter dispose");

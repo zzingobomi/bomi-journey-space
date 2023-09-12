@@ -139,3 +139,29 @@ export function moveTowardsVector4ToRef(
     );
   }
 }
+
+export function moveTowardsQuaternion(
+  current: Quaternion,
+  target: Quaternion,
+  maxDistanceDelta: number
+): Quaternion {
+  const result: Quaternion = new Quaternion();
+  moveTowardsQuaternionToRef(current, target, maxDistanceDelta, result);
+  return result;
+}
+
+export function moveTowardsQuaternionToRef(
+  current: Quaternion,
+  target: Quaternion,
+  maxDistanceDelta: number,
+  result: Quaternion
+): void {
+  const dot: number = Quaternion.Dot(current, target);
+
+  if (dot > 0.99999) {
+    Quaternion.SlerpToRef(current, target, maxDistanceDelta, result);
+    result.normalize();
+  } else {
+    Quaternion.SlerpToRef(current, target, maxDistanceDelta, result);
+  }
+}
