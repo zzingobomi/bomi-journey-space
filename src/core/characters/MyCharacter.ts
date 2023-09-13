@@ -14,7 +14,7 @@ import {
 } from "@babylonjs/core";
 import { InputController } from "../engine/InputController";
 
-enum CharacterState {
+export enum CharacterState {
   DASH = 0,
   IDLE,
   JUMP,
@@ -46,13 +46,15 @@ export class MyCharacter extends Entity<PlayerSchema> {
   oldPosition: Vector3 = new Vector3();
   oldQuaternion: Quaternion = new Quaternion();
   oldScale: Vector3 = new Vector3(1, 1, 1);
+  oldState: number = 0;
 
   constructor(assetName: string, updator: PlayerSchema) {
     super(assetName, updator);
 
     this.inputController = new InputController();
 
-    this.SetPatchRate(1000 / 20);
+    //this.SetPatchRate(1000 / 20);
+    this.SetPatchRate(1000 / 60);
 
     this.scene.registerBeforeRender(this.update.bind(this));
   }
@@ -307,6 +309,7 @@ export class MyCharacter extends Entity<PlayerSchema> {
 
   private patch() {
     this.elaspedTime += this.deltaTime;
+    // FIXME: 각각 따로 보내서..? 그리고 patchinterval 은 변화감지후 바로 보내고 다음턴부터 적용시켜야..
     if (this.elaspedTime >= this.patchInterval) {
       if (
         !this.rootMesh.position.equalsWithEpsilon(
@@ -342,6 +345,12 @@ export class MyCharacter extends Entity<PlayerSchema> {
           getMessageBytes[Protocol.ENTITY_SCALE](this.rootMesh.scaling)
         );
         this.oldScale.copyFrom(this.rootMesh.scaling);
+      }
+      if (this.currentState !== this.oldState) {
+        Managers.Network.Send(
+          getMessageBytes[Protocol.ENTITY_STATE](this.currentState)
+        );
+        this.oldState = this.currentState;
       }
 
       this.elaspedTime = 0;

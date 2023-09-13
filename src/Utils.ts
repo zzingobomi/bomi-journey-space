@@ -24,6 +24,9 @@ export const getMessageBytes = {
       scale.y,
       scale.z,
     ]),
+  [Protocol.ENTITY_STATE]: (state: number) => {
+    return new Uint8Array([Protocol.ENTITY_STATE, state]);
+  },
 };
 
 const encodeFloat32ArrayMessage = (protocol: Protocol, values: number[]) => {

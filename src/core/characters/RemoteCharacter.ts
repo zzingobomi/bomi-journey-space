@@ -6,10 +6,13 @@ import {
   Matrix,
   MeshBuilder,
   Quaternion,
+  Scalar,
   Vector3,
 } from "@babylonjs/core";
+import { CharacterState } from "./MyCharacter";
 
 export class RemoteCharacter extends Entity<PlayerSchema> {
+  currentState: number = 0;
   deltaTime: number = 0;
 
   constructor(assetName: string, updator: PlayerSchema) {
@@ -36,6 +39,9 @@ export class RemoteCharacter extends Entity<PlayerSchema> {
         updator.transform.scale.y,
         updator.transform.scale.z
       );
+    });
+    updator.onChange(() => {
+      this.currentState = updator.state;
     });
 
     this.scene.registerBeforeRender(this.update.bind(this));
@@ -69,6 +75,13 @@ export class RemoteCharacter extends Entity<PlayerSchema> {
 
     this.mesh = mesh;
 
+    for (const animationGroup of this.animationGroups) {
+      animationGroup.play(true);
+    }
+    this.animationGroups[CharacterState.DASH].weight = 0.0;
+    this.animationGroups[CharacterState.IDLE].weight = 1.0;
+    this.animationGroups[CharacterState.RUN].weight = 0.0;
+
     this.SetInitialPosition();
   }
 
@@ -90,6 +103,39 @@ export class RemoteCharacter extends Entity<PlayerSchema> {
       this.serverScale,
       this.deltaTime * this.scaleSpeed
     );
+
+    // this.rootMesh.position = Vector3.Lerp(
+    //   this.rootMesh.position,
+    //   this.serverPosition,
+    //   0.4
+    // );
+    // this.rootMesh.rotationQuaternion = Quaternion.Slerp(
+    //   this.rootMesh.rotationQuaternion,
+    //   this.serverQuaternion,
+    //   0.4
+    // );
+    // this.rootMesh.scaling = Vector3.Lerp(
+    //   this.rootMesh.scaling,
+    //   this.serverScale,
+    //   0.4
+    // );
+
+    this.switchAnimation(this.currentState);
+  }
+
+  private switchAnimation(state: CharacterState) {
+    for (let i = 0; i < this.animationGroups.length; i++) {
+      if (state === i) {
+        this.animationGroups[i].weight += 0.005 * this.deltaTime;
+      } else {
+        this.animationGroups[i].weight -= 0.005 * this.deltaTime;
+      }
+      this.animationGroups[i].weight = Scalar.Clamp(
+        this.animationGroups[i].weight,
+        0.0,
+        1.0
+      );
+    }
   }
 
   Dispose() {

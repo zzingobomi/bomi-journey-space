@@ -10,4 +10,5 @@ import { EntitySchema } from './EntitySchema'
 
 export class PlayerSchema extends EntitySchema {
     @type("string") public nickname!: string;
+    @type("number") public state!: number;
 }
