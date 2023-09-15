@@ -67,14 +67,14 @@ export class ResourceManager {
             assetTask = this.assetsManager.addContainerTask(
               obj.name,
               "",
-              "http://zzingo5.synology.me:9000/bomi-journey/",
+              process.env.STATIC_HOST,
               `${obj.filename}`
             );
           } else {
             assetTask = this.assetsManager.addMeshTask(
               obj.name,
               "",
-              "http://zzingo5.synology.me:9000/bomi-journey/",
+              process.env.STATIC_HOST,
               `${obj.filename}`
             );
           }

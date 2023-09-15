@@ -8,11 +8,7 @@ export class P2PManager {
   public Init() {
     Managers.Loading.ShowLoadingDesc("P2P Connection ...");
 
-    this.p2p = new P2P(
-      process.env.WS_SCHEME,
-      process.env.WS_HOST,
-      process.env.WS_PORT
-    );
+    this.p2p = new P2P(process.env.WS_HOST);
     // TODO: roomId 받아오기
     this.p2p.Join("userroom1", "user");
     this.p2p.OnSocketConnected = (socketId: string) => {
