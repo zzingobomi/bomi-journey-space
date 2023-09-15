@@ -23,7 +23,7 @@ export enum CharacterState {
 }
 
 export class MyCharacter extends Entity<PlayerSchema> {
-  private static readonly PLAYER_SPEED: number = 0.45;
+  private static readonly PLAYER_SPEED: number = 10;
   private static readonly GRAVITY: number = -2.8;
   private static readonly JUMP_FORCE: number = 0.8;
   private static readonly EPSILON: number = Math.pow(10, -12);
@@ -139,8 +139,10 @@ export class MyCharacter extends Entity<PlayerSchema> {
       this.inputAmt = inputMag;
     }
 
+    console.log(this.deltaTime);
+
     this.moveDirection = this.moveDirection.scaleInPlace(
-      this.inputAmt * MyCharacter.PLAYER_SPEED
+      this.inputAmt * MyCharacter.PLAYER_SPEED * (this.deltaTime / 1000)
     );
 
     let input = new Vector3(
