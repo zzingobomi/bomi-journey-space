@@ -1,9 +1,14 @@
 import { Vector2, Vector3, Vector4, Quaternion } from "@babylonjs/core";
 import { Protocol } from "./shared/Protocol";
+import { EntitySchema } from "./schema/EntitySchema";
 
 export const getMessageBytes = {
   [Protocol.JOIN_ROOM]: () => {
     return new Uint8Array([Protocol.JOIN_ROOM]);
+  },
+  [Protocol.ENTITY_CHANGES]: (updator: EntitySchema) => {
+    const patches = updator.encode(false, [], true);
+    return new Uint8Array([Protocol.ENTITY_CHANGES, ...patches]);
   },
   [Protocol.ENTITY_POSITION]: (position: Vector3) =>
     encodeFloat32ArrayMessage(Protocol.ENTITY_POSITION, [
@@ -35,6 +40,24 @@ const encodeFloat32ArrayMessage = (protocol: Protocol, values: number[]) => {
 
   return new Uint8Array([protocol, ...uint8Array]);
 };
+
+export function moveTowardsScalar(
+  current: number,
+  target: number,
+  maxDistanceDelta: number
+): number {
+  const toValue: number = target - current;
+  if (
+    toValue === 0 ||
+    (maxDistanceDelta >= 0 && Math.abs(toValue) <= maxDistanceDelta)
+  ) {
+    return target;
+  } else {
+    const sign = Math.sign(toValue);
+    const newValue = current + sign * maxDistanceDelta;
+    return newValue;
+  }
+}
 
 export function moveTowardsVector2(
   current: Vector2,

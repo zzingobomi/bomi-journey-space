@@ -23,10 +23,8 @@ export enum CharacterState {
 }
 
 export class MyCharacter extends Entity<PlayerSchema> {
-  private static readonly PLAYER_SPEED: number = 10;
   private static readonly GRAVITY: number = -2.8;
   private static readonly JUMP_FORCE: number = 0.8;
-  private static readonly EPSILON: number = Math.pow(10, -12);
 
   inputController: InputController;
 
@@ -43,18 +41,13 @@ export class MyCharacter extends Entity<PlayerSchema> {
   deltaTime: number = 0;
   elaspedTime: number = 0;
 
-  oldPosition: Vector3 = new Vector3();
-  oldQuaternion: Quaternion = new Quaternion();
-  oldScale: Vector3 = new Vector3(1, 1, 1);
-  oldState: number = 0;
-
   constructor(assetName: string, updator: PlayerSchema) {
     super(assetName, updator);
 
     this.inputController = new InputController();
 
-    //this.SetPatchRate(1000 / 20);
-    this.SetPatchRate(1000 / 60);
+    this.SetPatchRate(1000 / 20);
+    //this.SetPatchRate(1000 / 60);
 
     this.scene.registerBeforeRender(this.update.bind(this));
   }
@@ -98,9 +91,14 @@ export class MyCharacter extends Entity<PlayerSchema> {
     this.SetInitialPosition();
   }
 
+  private setState(state: CharacterState) {
+    this.currentState = state;
+    this.updator.state = state;
+  }
+
   private update() {
     this.deltaTime = this.engine.getDeltaTime();
-    this.currentState = CharacterState.IDLE;
+    this.setState(CharacterState.IDLE);
 
     this.inputController.UpdateInput();
 
@@ -139,10 +137,8 @@ export class MyCharacter extends Entity<PlayerSchema> {
       this.inputAmt = inputMag;
     }
 
-    console.log(this.deltaTime);
-
     this.moveDirection = this.moveDirection.scaleInPlace(
-      this.inputAmt * MyCharacter.PLAYER_SPEED * (this.deltaTime / 1000)
+      this.inputAmt * this.moveSpeed * (this.deltaTime / 1000)
     );
 
     let input = new Vector3(
@@ -151,11 +147,11 @@ export class MyCharacter extends Entity<PlayerSchema> {
       this.inputController.verticalAxis
     );
     if (input.length() === 0) {
-      this.currentState = CharacterState.IDLE;
+      this.setState(CharacterState.IDLE);
       return;
     }
 
-    this.currentState = CharacterState.RUN;
+    this.setState(CharacterState.RUN);
 
     let angle = Math.atan2(
       this.inputController.horizontalAxis,
@@ -166,8 +162,13 @@ export class MyCharacter extends Entity<PlayerSchema> {
     this.rootMesh.rotationQuaternion = Quaternion.Slerp(
       this.rootMesh.rotationQuaternion,
       targ,
-      (10 * this.deltaTime) / 1000.0
+      this.rotateSpeed * (this.deltaTime / 1000.0)
     );
+
+    this.updator.transform.quaternion.x = this.rootMesh.rotationQuaternion.x;
+    this.updator.transform.quaternion.y = this.rootMesh.rotationQuaternion.y;
+    this.updator.transform.quaternion.z = this.rootMesh.rotationQuaternion.z;
+    this.updator.transform.quaternion.w = this.rootMesh.rotationQuaternion.w;
   }
 
   private updateGroundDetection() {
@@ -192,6 +193,10 @@ export class MyCharacter extends Entity<PlayerSchema> {
     this.rootMesh.moveWithCollisions(
       this.moveDirection.addInPlace(this.gravity)
     );
+
+    this.updator.transform.position.x = this.rootMesh.position.x;
+    this.updator.transform.position.y = this.rootMesh.position.y;
+    this.updator.transform.position.z = this.rootMesh.position.z;
 
     if (this.isGrounded()) {
       this.gravity.y = 0;
@@ -311,48 +316,14 @@ export class MyCharacter extends Entity<PlayerSchema> {
 
   private patch() {
     this.elaspedTime += this.deltaTime;
-    // FIXME: 각각 따로 보내서..? 그리고 patchinterval 은 변화감지후 바로 보내고 다음턴부터 적용시켜야..
     if (this.elaspedTime >= this.patchInterval) {
-      if (
-        !this.rootMesh.position.equalsWithEpsilon(
-          this.oldPosition,
-          MyCharacter.EPSILON
-        )
-      ) {
+      const hasChanges = this.updator["$changes"].changes.size > 0;
+
+      if (hasChanges) {
         Managers.Network.Send(
-          getMessageBytes[Protocol.ENTITY_POSITION](this.rootMesh.position)
+          getMessageBytes[Protocol.ENTITY_CHANGES](this.updator)
         );
-        this.oldPosition.copyFrom(this.rootMesh.position);
-      }
-      if (
-        !this.rootMesh.rotationQuaternion.equalsWithEpsilon(
-          this.oldQuaternion,
-          MyCharacter.EPSILON
-        )
-      ) {
-        Managers.Network.Send(
-          getMessageBytes[Protocol.ENTITY_QUATERNION](
-            this.rootMesh.rotationQuaternion
-          )
-        );
-        this.oldQuaternion.copyFrom(this.rootMesh.rotationQuaternion);
-      }
-      if (
-        !this.rootMesh.scaling.equalsWithEpsilon(
-          this.oldScale,
-          MyCharacter.EPSILON
-        )
-      ) {
-        Managers.Network.Send(
-          getMessageBytes[Protocol.ENTITY_SCALE](this.rootMesh.scaling)
-        );
-        this.oldScale.copyFrom(this.rootMesh.scaling);
-      }
-      if (this.currentState !== this.oldState) {
-        Managers.Network.Send(
-          getMessageBytes[Protocol.ENTITY_STATE](this.currentState)
-        );
-        this.oldState = this.currentState;
+        this.updator.discardAllChanges();
       }
 
       this.elaspedTime = 0;

@@ -9,6 +9,7 @@ import {
   Skeleton,
   AnimationGroup,
   AbstractMesh,
+  InstantiatedEntries,
 } from "@babylonjs/core";
 import { Managers } from "@src/managers/Managers";
 import { EntitySchema } from "@src/schema/EntitySchema";
@@ -17,6 +18,7 @@ export abstract class Entity<T extends EntitySchema> extends TransformNode {
   engine: Engine;
   scene: Scene;
 
+  instanceModel: InstantiatedEntries;
   rootMesh: Mesh;
   mesh: AbstractMesh;
   rootNodes: Node[];
@@ -25,9 +27,10 @@ export abstract class Entity<T extends EntitySchema> extends TransformNode {
 
   updator: T;
 
-  moveSpeed = 0.01;
-  rotateSpeed = 0.01;
-  scaleSpeed = 0.01;
+  // TODO: 각 Entity 마다 Data 에서 가져오도록
+  moveSpeed = 10;
+  rotateSpeed = 10;
+  scaleSpeed = 10;
 
   serverPosition = new Vector3();
   serverQuaternion = new Quaternion();
@@ -42,14 +45,15 @@ export abstract class Entity<T extends EntitySchema> extends TransformNode {
     this.scene = Managers.Game.scene;
     this.updator = updator;
 
-    const { rootNodes, skeletons, animationGroups } =
+    this.instanceModel =
       Managers.Resource.GetAsset(assetName).instantiateModelsToScene();
-    this.rootNodes = rootNodes;
-    this.skeletons = skeletons;
-    animationGroups.forEach((animationGroup, index) => {
+
+    this.rootNodes = this.instanceModel.rootNodes;
+    this.skeletons = this.instanceModel.skeletons;
+    this.animationGroups = this.instanceModel.animationGroups;
+    this.animationGroups.forEach((animationGroup, index) => {
       animationGroup.name = animationGroup.name.replace("Clone of ", "");
     });
-    this.animationGroups = animationGroups;
   }
 
   abstract InitMesh();
@@ -77,6 +81,5 @@ export abstract class Entity<T extends EntitySchema> extends TransformNode {
     this.patchInterval = milliseconds;
   }
 
-  //abstract Update(delta: number);
   abstract Dispose();
 }

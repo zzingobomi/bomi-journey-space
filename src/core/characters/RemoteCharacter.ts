@@ -40,9 +40,6 @@ export class RemoteCharacter extends Entity<PlayerSchema> {
         updator.transform.scale.z
       );
     });
-    updator.onChange(() => {
-      this.currentState = updator.state;
-    });
 
     this.scene.registerBeforeRender(this.update.bind(this));
   }
@@ -91,34 +88,26 @@ export class RemoteCharacter extends Entity<PlayerSchema> {
     this.rootMesh.position = moveTowardsVector3(
       this.rootMesh.position,
       this.serverPosition,
-      this.deltaTime * this.moveSpeed
+      (this.deltaTime / 1000) * this.moveSpeed
     );
     this.rootMesh.rotationQuaternion = moveTowardsQuaternion(
       this.rootMesh.rotationQuaternion,
       this.serverQuaternion,
-      this.deltaTime * this.rotateSpeed
+      (this.deltaTime / 1000) * this.rotateSpeed
     );
     this.rootMesh.scaling = moveTowardsVector3(
       this.rootMesh.scaling,
       this.serverScale,
-      this.deltaTime * this.scaleSpeed
+      (this.deltaTime / 1000) * this.scaleSpeed
     );
 
-    // this.rootMesh.position = Vector3.Lerp(
-    //   this.rootMesh.position,
-    //   this.serverPosition,
-    //   0.4
-    // );
-    // this.rootMesh.rotationQuaternion = Quaternion.Slerp(
-    //   this.rootMesh.rotationQuaternion,
-    //   this.serverQuaternion,
-    //   0.4
-    // );
-    // this.rootMesh.scaling = Vector3.Lerp(
-    //   this.rootMesh.scaling,
-    //   this.serverScale,
-    //   0.4
-    // );
+    // TODO: 이동 보간때문에 상태를 바로 업데이트하면 애니메이션 동기화가 안맞는다..
+    // 만약 달리기나 점프 또는 다른 상태는 어떻게 동기화를 맞출 것인가?
+    if (this.rootMesh.position.equalsWithEpsilon(this.serverPosition)) {
+      this.currentState = CharacterState.IDLE;
+    } else {
+      this.currentState = CharacterState.RUN;
+    }
 
     this.switchAnimation(this.currentState);
   }
@@ -139,6 +128,8 @@ export class RemoteCharacter extends Entity<PlayerSchema> {
   }
 
   Dispose() {
-    console.log("remotecharacter dispose");
+    this.instanceModel.dispose();
+    this.rootMesh.dispose();
+    this.dispose();
   }
 }
