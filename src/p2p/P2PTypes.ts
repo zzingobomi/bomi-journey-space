@@ -4,12 +4,16 @@ export type p2pType = "node" | "gameserver" | "user";
 
 export enum SocketMsgType {
   Hello = "hello",
-  JoinRoom = "joinRoom",
+  JoinHostRoom = "joinHostRoom",
+  JoinGuestRoom = "joinGuestRoom",
+  JoinUserRoom = "joinUserRoom",
+  OtherHosts = "otherHosts",
   OtherUsers = "otherUsers",
   Offer = "offer",
   Answer = "answer",
   Candidate = "candidate",
   Disconnect = "disconnect",
+  OtherHostExit = "otherHostExit",
   OtherExit = "otherExit",
   GameServer = "gameserver",
 }

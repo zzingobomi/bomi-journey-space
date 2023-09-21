@@ -8,9 +8,9 @@ export class P2PManager {
   public Init() {
     Managers.Loading.ShowLoadingDesc("P2P Connection ...");
 
-    this.p2p = new P2P(process.env.WS_HOST);
+    this.p2p = new P2P(process.env.WS_HOST, "user");
     // TODO: roomId 받아오기
-    this.p2p.Join("userroom1", "user");
+    //this.p2p.Join("userroom1", "user");
     this.p2p.OnSocketConnected = (socketId: string) => {
       console.log(`${socketId} is connected`);
       Managers.Network.Init(socketId);
